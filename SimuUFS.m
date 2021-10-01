@@ -5,7 +5,7 @@
 %
 % where a is the amplitude of the modulation, ph the phase of the
 % illumination pattern and k=[kx,ky] is the wave vector given by
-%   k=(2 pi ns)/lamb [cos(th), sin(th)]*sin(bet) 
+%   k=(2 pi ns)/lamb [cos(th), sin(th)]*sin(bet)
 % with th the lateral orientation of the illumination, nl the refractive
 % index of the objective medium and bet the angle between side beams and
 % the optic axis (of the two interfering beams used to generate the
@@ -15,11 +15,11 @@
 % only the focal plane.
 %
 % Before to run it set the following papareters:
-% -- General 
+% -- General
 % sav=             -> to save results
 % expFolder=       -> experiment folder
-% gtpath=          -> file name ground truth 
-% 
+% gtpath=          -> file name ground truth
+%
 % -- PSF
 % lamb=            -> Illumination wavelength
 % res=             -> Resolution
@@ -39,43 +39,53 @@
 %
 % Copyright (2018) Emmanuel Soubies, emmanuel.soubies@epfl.ch
 %----------------------------------------------------
-addpath ./Utils 
+addpath ./Utils
 javaaddpath ./Utils/PSFGenerator.jar
 
 %% Reading data
 fprintf('Reading data .............');
-im=double(read(Tiff(gtpath, 'r'))); im=im/max(im(:));
-sz=size(im);
+im2D=double(read(Tiff(gtpath, 'r')));
 fprintf(' done \n');
+im2D = imresize(im2D, gtsize);
+im2D = (im2D - min(im2D(:)))/ (max(im2D(:)) - min(im2D(:)));
+nbPatt = length(orr)*length(ph);
+sz = [size(im2D), nbPatt];
+% Moving image
+speed = [1 1]; % displacement per frame
+im = zeros(sz);
+for n = 1 : nbPatt
+    if speed(1) > 0
+        intx = (1+speed(1)*n) : sz(1);
+    else 
+        intx = 1 : (sz(1)-speed(1)*n);
+    end
+    if speed(2) > 0
+        inty = (1+speed(2)*n) : sz(2);
+    else 
+        inty = 1 : (sz(2)-speed(2)*n);
+    end
+    im(intx,inty,n) = im2D(intx-abs(speed(1))*n, inty-abs(speed(2))*n);
+end
+saveastiff(single(im),[expFolder,'/objectUFS.tif']);
+
 
 %% PSF Generation
 fprintf('PSF Generation ...........');
 fc=2*Na/lamb*res;
-if length(sz)==3
-    setConfigFilePSF(sz(2),sz(1),sz(3),res,resZ,Na,lamb,'./Utils/configPSF.txt');
-    psf = PSFGenerator.compute('./Utils/configPSF.txt');psf=psf/sum(psf(:));
-    ll=linspace(-0.5,0,sz(1)/2+1);
-    lr=linspace(0,0.5,sz(1)/2);
-    [X,Y]=meshgrid([ll,lr(2:end)],[ll,lr(2:end)]);
-    [th,rho]=cart2pol(X,Y);
-    OTF=fftn(fftshift(psf));OTF=fftshift(fftshift(OTF).*repmat((rho<fc),[1 1 size(OTF,3)]));psf=real(fftshift(ifftn(OTF)));
-    figure;subplot(1,2,1);imagesc(log(1+abs(fftshift(OTF(:,:,1))))); axis image; title('OTF'); colormap(fire(200));viscircles(floor(sz(1:2)/2)+1,fc*sz(1));caxis([0 0.01*max(abs(OTF(:)))]);
-    subplot(1,2,2);imagesc(psf(:,:,floor(sz(3)/2)+1)); axis image; title('PSF'); caxis([0 0.01*max(psf(:))]);
-else   
-    ll=linspace(-0.5,0,sz(1)/2+1);
-    lr=linspace(0,0.5,sz(1)/2);
-    [X,Y]=meshgrid([ll,lr(2:end)],[ll,lr(2:end)]);
-    [th,rho]=cart2pol(X,Y);
-    OTF=fftshift(1/pi*(2*acos(abs(rho)/fc)-sin(2*acos(abs(rho)/fc))).*(rho<fc));
-    figure;subplot(1,2,1);imagesc((fftshift(OTF))); axis image; title('OTF'); colormap(fire(200));viscircles(floor(sz/2)+1,fc*sz(1));
-    psf=real(fftshift(ifft2(OTF)));
-    subplot(1,2,2);imagesc(psf); axis image; title('PSF'); caxis([0 0.01*max(psf(:))]);
-end
+ll=linspace(-0.5,0,sz(1)/2+1);
+lr=linspace(0,0.5,sz(1)/2);
+[X,Y]=meshgrid([ll,lr(2:end)],[ll,lr(2:end)]);
+[th,rho]=cart2pol(X,Y);
+OTF=fftshift(1/pi*(2*acos(abs(rho)/fc)-sin(2*acos(abs(rho)/fc))).*(rho<fc));
+figure;subplot(1,2,1);imagesc((fftshift(OTF))); axis image; title('OTF');
+colormap(fire(200));viscircles(floor(sz(1:2)/2)+1,fc*sz(1));
+psf=real(fftshift(ifft2(OTF)));
+subplot(1,2,2);imagesc(psf); axis image; title('PSF'); caxis([0 0.01*max(psf(:))]);
 fprintf(' done \n');
 
 %% Patterns Generation
 fprintf('Patterns Generation ......');
-patt=zeros([sz(1:2),length(orr)*length(ph)]);
+patt=zeros(sz);
 [X,Y]=meshgrid(0:sz(2)-1,0:sz(1)-1);X=X*res;Y=Y*res;
 it=1;
 for ii=1:length(orr)
@@ -91,32 +101,29 @@ for ii=1:nbPatt
     patt(:,:,ii)=patt(:,:,ii)/(mean(tmp(:))*nbPatt);
 end
 figure;subplot(1,2,1);imagesc(patt(:,:,1)); axis image; title('Example pattern');
-subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(patt(:,:,1)))))); axis image; title('Example pattern FFT'); 
+subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(patt(:,:,1)))))); axis image; title('Example pattern FFT');
 viscircles(floor(sz(1:2)/2)+1,fc*sz(1));
 fprintf(' done \n');
 
 %% Image Noiseless Acquisition
 fprintf('Acquisition simulation ...');
 % - LinOp Downsampling and integration over camera pixels
-if length(sz)==3
-    SS=LinOpSum(sz,3);
-else
-    SS=LinOpIdentity(sz);
-end
+
 S=LinOpDownsample(sz(1:2),downFact);
 % - LinOpConv (PSF)
-OTF=Sfft(fftshift(fftshift(psf(:,:,end:-1:1),1),2),3);
+%OTF=Sfft(fftshift(fftshift(psf(:,:),1),2),3);
 H=LinOpConv(OTF,1,[1 2]);
 % - Acquisition
 acqNoNoise=zeros([S.sizeout,size(patt,3)]);
 fprintf(' Pattern # ');
 for it=1:size(patt,3)
     fprintf([num2str(it),'..']);
-    D=LinOpDiag(sz,patt(:,:,it));
-    acqNoNoise(:,:,it)=S*SS*H*D*im;
+    Si = LinOpSelectorPlanes(sz,3,it,true);
+    D=LinOpDiag(sz(1:2),patt(:,:,it));
+    acqNoNoise(:,:,it)=S*H*D*Si*im;
 end
 fprintf(' done \n');
-    
+
 %% Add noise and Save
 for ii=1:length(photBud)
     % - Add Noise
@@ -130,7 +137,7 @@ for ii=1:length(photBud)
     end
     SNR=20*log10(norm(acqNoNoise(:))/norm(acq(:)-acqNoNoise(:)));
     disp(['SNR = ',num2str(SNR),' dB']);
-    
+
     % - Save
     if sav
         saveastiff(single(acqNoNoise),[expFolder,'/AcqDataNoiseless.tif']);
@@ -147,9 +154,9 @@ save([expFolder,'/PSF'],'psf');
 saveastiff(single(patt),[expFolder,'/patterns.tif']);
 
 figure;subplot(1,2,1);imagesc(acq(:,:,1)); axis image; title('Example Acquired image');
-subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(acq(:,:,1)))))); axis image; title('Example Acquired image FFT'); 
+subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(acq(:,:,1)))))); axis image; title('Example Acquired image FFT');
 figure;subplot(1,2,1);imagesc(sum(acq,3)); axis image; title('Widefield image');
-subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(sum(acq,3)))))); axis image; title('Widefield image FFT'); 
+subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(sum(acq,3)))))); axis image; title('Widefield image FFT');
 
 
 

@@ -98,6 +98,11 @@ y=gpuCpuConverter(y);
 szPsf=size(psf);
 if size(psf,3)==1
     fp=1;
+    if nbOutSl~=0
+        psf = repmat(psf,1,1,nbOutSl*4);
+        szPsf=size(psf);
+        fp=floor(szPsf(3)/2)+1;
+    end
 else
     fp=floor(szPsf(3)/2)+1;
 end   

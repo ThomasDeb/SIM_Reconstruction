@@ -8,6 +8,7 @@
 % Copyright (2018) E. Soubies emmanuel.soubies@irit.fr
 %--------------------------------------------------------------------------
 clear;close all;clc;
+setGlobalBioImPath;
 
 %% Simulation
 % -- Paths
@@ -54,7 +55,7 @@ downFact=[2 2];  % Downsampling factors
 
 % -- Objective Function
 lamb=2e-4;       % Hyperparameter (can be an array to loop)
-nbOutSl=0;       % The number of considered out-of-focus slices will be (2*nbOutSl-1)
+nbOutSl=2;       % The number of considered out-of-focus slices will be (2*nbOutSl-1)
 symPsf=1;        % Boolean true if psf is symmetric (in this case 2*nbOutSl out-of-focus slides are considered on the same side of the psf in z)
 Reg=2;           % Choice regul: 1 for TV, 2 for Hessian-Schatten
 
