@@ -50,23 +50,26 @@ im2D = imresize(im2D, gtsize);
 im2D = (im2D - min(im2D(:)))/ (max(im2D(:)) - min(im2D(:)));
 nbPatt = length(orr)*length(ph);
 sz = [size(im2D), nbPatt];
+bckgrnd = im2D(5,5);
+im2D(1:5, :) = bckgrnd; im2D(end-4:end, :) = bckgrnd;
+im2D(:, 1:5) = bckgrnd; im2D(:, end-4:end) = bckgrnd;
 % Moving image
 speed = [1 1]; % displacement per frame
-im = zeros(sz);
+im = ones(sz) * bckgrnd; % Background value
 for n = 1 : nbPatt
     if speed(1) > 0
         intx = (1+speed(1)*n) : sz(1);
-    else 
+    else
         intx = 1 : (sz(1)-speed(1)*n);
     end
     if speed(2) > 0
         inty = (1+speed(2)*n) : sz(2);
-    else 
+    else
         inty = 1 : (sz(2)-speed(2)*n);
     end
     im(intx,inty,n) = im2D(intx-abs(speed(1))*n, inty-abs(speed(2))*n);
 end
-saveastiff(single(im),[expFolder,'/objectUFS.tif']);
+saveastiff(double(im),[expFolder,'objectUFS.tif']);
 
 
 %% PSF Generation
@@ -80,6 +83,7 @@ OTF=fftshift(1/pi*(2*acos(abs(rho)/fc)-sin(2*acos(abs(rho)/fc))).*(rho<fc));
 figure;subplot(1,2,1);imagesc((fftshift(OTF))); axis image; title('OTF');
 colormap(fire(200));viscircles(floor(sz(1:2)/2)+1,fc*sz(1));
 psf=real(fftshift(ifft2(OTF)));
+OTF = fft2(fftshift(psf)); % Bug fix ?
 subplot(1,2,2);imagesc(psf); axis image; title('PSF'); caxis([0 0.01*max(psf(:))]);
 fprintf(' done \n');
 
@@ -87,12 +91,12 @@ fprintf(' done \n');
 fprintf('Patterns Generation ......');
 patt=zeros(sz);
 [X,Y]=meshgrid(0:sz(2)-1,0:sz(1)-1);X=X*res;Y=Y*res;
-it=1;
+i=1;
 for ii=1:length(orr)
     k=2*pi*ns/lamb*[cos(orr(ii)), sin(orr(ii))]*sin(bet);
     for jj=1:length(ph)
-        patt(:,:,it)=1+ a*cos(2*(k(1)*X+k(2)*Y + ph(jj)));
-        it=it+1;
+        patt(:,:,i)=1+ a*cos(2*(k(1)*X+k(2)*Y + ph(jj)));
+        i=i+1;
     end
 end
 nbPatt=size(patt,3); % Normalization such that the mean of each pattern is 1/#Patterns
@@ -100,6 +104,8 @@ for ii=1:nbPatt
     tmp=patt(:,:,ii);
     patt(:,:,ii)=patt(:,:,ii)/(mean(tmp(:))*nbPatt);
 end
+nn=sum(patt.^2,3);                    
+patt=patt/(sqrt(max(nn(:)))); % Normalize patterns for simplicity (see Manu's paper)
 figure;subplot(1,2,1);imagesc(patt(:,:,1)); axis image; title('Example pattern');
 subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(patt(:,:,1)))))); axis image; title('Example pattern FFT');
 viscircles(floor(sz(1:2)/2)+1,fc*sz(1));
@@ -116,11 +122,11 @@ H=LinOpConv(OTF,1,[1 2]);
 % - Acquisition
 acqNoNoise=zeros([S.sizeout,size(patt,3)]);
 fprintf(' Pattern # ');
-for it=1:size(patt,3)
-    fprintf([num2str(it),'..']);
-    Si = LinOpSelectorPlanes(sz,3,it,true);
-    D=LinOpDiag(sz(1:2),patt(:,:,it));
-    acqNoNoise(:,:,it)=S*H*D*Si*im;
+for i=1:size(patt,3)
+    fprintf([num2str(i),'..']);
+    Si = LinOpSelectorPlanes(sz,3,i,true);
+    Di = LinOpDiag(sz(1:2),patt(:,:,i));
+    acqNoNoise(:,:,i)=S*H*Di*Si*im;
 end
 fprintf(' done \n');
 
@@ -137,21 +143,21 @@ for ii=1:length(photBud)
     end
     SNR=20*log10(norm(acqNoNoise(:))/norm(acq(:)-acqNoNoise(:)));
     disp(['SNR = ',num2str(SNR),' dB']);
-
+    
     % - Save
     if sav
-        saveastiff(single(acqNoNoise),[expFolder,'/AcqDataNoiseless.tif']);
-        saveastiff(single(log(1+abs(fftshift(fftshift(Sfft(acqNoNoise,3),1),2)))),[expFolder,'/AcqDataNoiseless-FFT.tif']);
-        saveastiff(single(acq),[expFolder,'/AcqData.tif']);
-        saveastiff(single(log(1+abs(fftshift(fftshift(Sfft(acq,3),1),2)))),[expFolder,'/AcqData-FFT.tif']);
-        saveastiff(single(sum(acq,3)),[expFolder,'/WFData.tif']);
-        saveastiff(single(log(1+abs(fftshift(fft2(sum(acq,3)))))),[expFolder,'/WFData-FFT.tif']);
-        saveastiff(single(sum(acqNoNoise,3)),[expFolder,'/WFDataNoiseless.tif']);
-        saveastiff(single(log(1+abs(fftshift(fft2(sum(acqNoNoise,3)))))),[expFolder,'/WFDataNoiseless-FFT.tif']);
+        saveastiff(double(acqNoNoise),[expFolder,'AcqDataNoiseless.tif']);
+        saveastiff(double(log(1+abs(fftshift(fftshift(Sfft(acqNoNoise,3),1),2)))),[expFolder,'AcqDataNoiseless-FFT.tif']);
+        saveastiff(double(acq),[expFolder,'AcqData.tif']);
+        saveastiff(double(log(1+abs(fftshift(fftshift(Sfft(acq,3),1),2)))),[expFolder,'AcqData-FFT.tif']);
+        saveastiff(double(sum(acq,3)),[expFolder,'WFData.tif']);
+        saveastiff(double(log(1+abs(fftshift(fft2(sum(acq,3)))))),[expFolder,'WFData-FFT.tif']);
+        saveastiff(double(sum(acqNoNoise,3)),[expFolder,'WFDataNoiseless.tif']);
+        saveastiff(double(log(1+abs(fftshift(fft2(sum(acqNoNoise,3)))))),[expFolder,'WFDataNoiseless-FFT.tif']);
     end
 end
-save([expFolder,'/PSF'],'psf');
-saveastiff(single(patt),[expFolder,'/patterns.tif']);
+save([expFolder,'PSF'],'psf');
+saveastiff(double(patt),[expFolder,'patterns.tif']);
 
 figure;subplot(1,2,1);imagesc(acq(:,:,1)); axis image; title('Example Acquired image');
 subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(acq(:,:,1)))))); axis image; title('Example Acquired image FFT');

@@ -1,10 +1,10 @@
-clear; close all; clc;
+clear; close all;
 setGlobalBioImPath;
 
 %% Simulation
 % -- Paths
 gtpath='./Data/object.tif';      % file name ground truth
-gtsize = [128, 128];            % size of ground truth image
+gtsize = [256, 256];            % size of ground truth image
 expFolder='./SimulatedExample/';   % experiment folder
 sav=1;                           % to save results
 
@@ -34,9 +34,9 @@ disp('###################################');
 %% Reconstruction 
 % -- Paths
 basedir='./SimulatedExample/';
-dataname=[basedir,'/AcqData.tif'];      % File name data image
-psfname=[basedir,'/PSF'];               % File name psf
-pattname=[basedir,'/patterns.tif'];     % File name patterns
+dataname=[basedir,'AcqData.tif'];      % File name data image
+psfname=[basedir,'PSF'];               % File name psf
+pattname=[basedir,'patterns.tif'];     % File name patterns
 gtname=['./SimulatedExample/objectUFS.tif'];           % File name ground truth (if no let empty)
 outFolder=[basedir];                    % Folder to save results
 sav=1;                                  % Boolean if true save the result
@@ -45,8 +45,8 @@ sav=1;                                  % Boolean if true save the result
 valback=0;       % Background value
 
 % -- Objective Function
-lamb_TV=2e-4;       % Hyperparameter (can be an array to loop)
-lamb_hess=2e-4;       % Hyperparameter (can be an array to loop)
+lamb_TV=1e-5;       % Hyperparameter (can be an array to loop)
+lamb_hess=lamb_TV/3;       % Hyperparameter (can be an array to loop)
 symPsf=1;        % Boolean true if psf is symmetric
 
 % -- SIM reconstruction
@@ -54,8 +54,8 @@ alg=1;                    % Algorithm (1: ADMM / 2: Primal-Dual)
 maxIt = 100;               % Max iterations
 ItUpOut =round(maxIt/10);  % Iterations between to call to OutputOpti
 rhoDTNN = 1e-3;            % rho parameter (ADMM) associated to data term
-rho_TV = 1e-3;             % rho parameter (ADMM) associated to TV term (must be greater or equal than rhoDTNN if iterCG=0)
-rho_hess = 1e-3;            % rho parameter (ADMM) associated to Hessian-Schatten term (must be greater or equal than rhoDTNN if iterCG=0)
+rho_TV = lamb_TV*10;             % rho parameter (ADMM) associated to TV term (must be greater or equal than rhoDTNN if iterCG=0)
+rho_hess = lamb_hess*100;             % rho parameter (ADMM) associated to Hessian-Schatten term (must be greater or equal than rhoDTNN if iterCG=0)
 split=2;                  % Splitting strategy for data fidelity:
 valId=2;                  % Scaling (>1) of the identity operator for the reformulation in [1] (only for splitting 3)
 
@@ -79,7 +79,7 @@ if ~isempty(pattname)
     nbPatt=size(patt,3);
 end
 % -- Data
-y=double(loadtiff(dataname))-valback;maxy=max(y(:));y=y/maxy;              % Load and normalize data
+y=double(loadtiff(dataname))-valback; %maxy=max(y(:));y=y/maxy;              % Load and normalize data
 % -- Ground Truth
 if ~isempty(gtname)                                                        % Load ground truth if available
     gt=double(loadtiff(gtname))-valback;            
@@ -146,12 +146,18 @@ else
     OpD=LinOpIdentity(sz);
 end
 %% SIM Reconstruction 
+
+
+
 for ii=1:length(lamb_TV)
     if alg==1     % ADMM
         FF=[Fn, {lamb_TV(ii)*F_TV}, {lamb_hess(ii)*F_hess}, {pos}];
         HH=[Hn, {Op_TV}, {Op_hess}, {OpD}];
         rho=[ones(size(Fn))*rhoDTNN,rho_TV,rho_hess,rhoDTNN];
-        Opt=OptiADMM(F0,FF,HH,rho);
+        % Solver for ADMM
+        A = rho_TV * Op_TV.makeHtH + rho_hess * Op_hess.makeHtH + rhoDTNN * valId * LinOpIdentity(sz);
+        solver = @(zn, rho_n, x0) solver_ADMM(A, HH, zn, rho_n);
+        Opt=OptiADMM(F0, FF, HH, rho, solver);
         Opt.OutOp=MyOutputOpti(1,gt,round(maxIt/10),1:(length(FF)-1));
     elseif alg==2 % Primal-Dual
         FF=[Fn,{lamb(ii)/(size(otf,3))*Freg}];
@@ -172,27 +178,28 @@ for ii=1:length(lamb_TV)
     Opt.maxiter=maxIt;                % max number of iterations
     Opt.run(zeros(Hn{1}.sizein));     % run the algorithm 
     if isGPU==1
-        xopt=gather(Opt.xopt(:,:,nbOutSl+1));
+        xopt=gather(Opt.xopt);
         fftxopt=gather(log(1+abs(fftshift(fftshift(Sfft(xopt,3),1),2))));   % because Sfft uses zeros_
     else
-        xopt=Opt.xopt(:,:,nbOutSl+1);
+        xopt=Opt.xopt;
         fftxopt=log(1+abs(fftshift(fftshift(Sfft(xopt,3),1),2)));
     end   
     if sav
         if ~isempty(pattname)
-            saveastiff(single(xopt),[outFolder,'Recons_nbPl',num2str(nbOutSl*2-1),...
+            saveastiff(single(xopt),[outFolder,...
                 '_lamb_TV',num2str(lamb_TV(ii)),'_lamb_hess',num2str(lamb_hess(ii)),'.tif']);
-            saveastiff(single(fftxopt),[outFolder,'Recons_nbPl',num2str(nbOutSl*2-1),...
+            saveastiff(single(fftxopt),[outFolder,...
                 '_lamb_TV',num2str(lamb_TV(ii)),'_lamb_hess',num2str(lamb_hess(ii)),'-FFT.tif']);
         else
-            saveastiff(single(xopt),[outFolder,'Deconv_nbPl',num2str(nbOutSl*2-1),...
+            saveastiff(single(xopt),[outFolder,...
                 '_lamb_TV',num2str(lamb_TV(ii)),'_lamb_hess',num2str(lamb_hess(ii)),'.tif']);
-            saveastiff(single(fftxopt),[outFolder,'Deconv_nbPl',num2str(nbOutSl*2-1),...
+            saveastiff(single(fftxopt),[outFolder,...
                 '_lamb_TV',num2str(lamb_TV(ii)),'_lamb_hess',num2str(lamb_hess(ii)),'-FFT.tif']);
         end
     end
 end
 
 disp('###################################');
-figure;subplot(1,2,1);imagesc(xopt); axis image; title('Reconstructed image');
-subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(xopt))))); axis image; title('Reconstructed image FFT'); 
+figure;sliceViewer(gt, 'Colormap', parula); title('Ground truth');
+figure;sliceViewer(xopt, 'Colormap', parula); title('Reconstructed image');
+figure;sliceViewer(log(1+abs(fftshift(fftn(xopt)))), 'Colormap', parula); title('Reconstructed image FFT'); 
