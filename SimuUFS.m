@@ -50,24 +50,30 @@ im2D = imresize(im2D, gtsize);
 im2D = (im2D - min(im2D(:)))/ (max(im2D(:)) - min(im2D(:)));
 nbPatt = length(orr)*length(ph);
 sz = [size(im2D), nbPatt];
-bckgrnd = im2D(5,5);
+bckgrnd = im2D(5,5); % Background value
 im2D(1:5, :) = bckgrnd; im2D(end-4:end, :) = bckgrnd;
 im2D(:, 1:5) = bckgrnd; im2D(:, end-4:end) = bckgrnd;
 % Moving image
-speed = [1 1]; % displacement per frame
-im = ones(sz) * bckgrnd; % Background value
+max_displacement_x = 5; % Max displacement in total
+displacement_x = round(linspace(0, max_displacement_x, ceil((nbPatt+1)/2)));
+displacement_x = [displacement_x, flip(displacement_x(2-mod(nbPatt, 2):end-1))];
+max_displacement_y = max_displacement_x; %
+displacement_y = round(linspace(0, max_displacement_y, ceil((nbPatt+1)/2)));
+displacement_y = [displacement_y, flip(displacement_y(2-mod(nbPatt, 2):end-1))];
+im = ones(sz) * bckgrnd; 
+
 for n = 1 : nbPatt
-    if speed(1) > 0
-        intx = (1+speed(1)*n) : sz(1);
+    if displacement_x(n) > 0
+        intx = (1+displacement_x(n)) : sz(1);
     else
-        intx = 1 : (sz(1)-speed(1)*n);
+        intx = 1 : (sz(1)-displacement_x(n));
     end
-    if speed(2) > 0
-        inty = (1+speed(2)*n) : sz(2);
+    if displacement_y(n) > 0
+        inty = (1+displacement_y(n)) : sz(2);
     else
-        inty = 1 : (sz(2)-speed(2)*n);
+        inty = 1 : (sz(2)-displacement_y(n));
     end
-    im(intx,inty,n) = im2D(intx-abs(speed(1))*n, inty-abs(speed(2))*n);
+    im(intx,inty,n) = im2D(intx-abs(displacement_x(n)), inty-abs(displacement_y(n)));
 end
 saveastiff(double(im),[expFolder,'objectUFS.tif']);
 
@@ -138,8 +144,8 @@ for ii=1:length(photBud)
         tmp=sum(acqNoNoise,3);
         factor = photBud(ii)./mean(tmp(:)) ;
         acqNoNoise = acqNoNoise.* factor;
-        im = im.*factor;
         acq = random('Poisson',acqNoNoise);
+        im = im.*factor;
     end
     SNR=20*log10(norm(acqNoNoise(:))/norm(acq(:)-acqNoNoise(:)));
     disp(['SNR = ',num2str(SNR),' dB']);
