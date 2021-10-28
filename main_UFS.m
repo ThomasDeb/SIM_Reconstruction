@@ -1,5 +1,6 @@
 clear; close all;
 setGlobalBioImPath;
+addpath('./Utils/');
 rng(1);
 
 %% Simulation
@@ -52,11 +53,12 @@ symPsf=1;        % Boolean true if psf is symmetric
 
 % -- SIM reconstruction
 maxIt = 200;               % Max iterations
-ItUpOut =round(maxIt/10);  % Iterations between to call to OutputOpti
+ItUpOut = round(maxIt/10);  % Iterations between to call to OutputOpti
 rhoDTNN = 1e-3;            % rho parameter (ADMM) associated to data term
 rho_TV = lamb_TV*10;             % rho parameter (ADMM) associated to TV term (must be greater or equal than rhoDTNN if iterCG=0)
 rho_hess = lamb_hess*100;             % rho parameter (ADMM) associated to Hessian-Schatten term (must be greater or equal than rhoDTNN if iterCG=0)
-valId=2;                  % Scaling (>1) of the identity operator for the reformulation in [1] (only for splitting 3)
+valId = 2;                  % Scaling (>1) of the identity operator for the reformulation in [1] (only for splitting 3)
+periodic_TV = false;
 
 %% Reconstruction
 disp('########## Reconstruction #########');
@@ -117,8 +119,13 @@ else
 end
 % -- Regularization
 % TV regularization in time
-Op_TV=LinOpGrad(sz,3,'circular');      % TV regularizer: Operator Gradient
-F_TV=CostL1(Op_TV.sizeout);                % TV regularizer: L1 norm (gradient of size 1)
+if periodic_TV
+    Op_TV = LinOpGrad(sz,3,'circular');      % TV regularizer: Operator Gradient
+    F_TV = CostL1(Op_TV.sizeout);                % TV regularizer: L1 norm (gradient of size 1)
+else
+    Op_TV = LinOpIdentity(sz);
+    F_TV = CostTV1D(sz, 3);
+end
 Op_hess=LinOpHess(sz,'circular',[1 2]);  % Hessian-Shatten: Hessian Operator
 F_hess=CostMixNormSchatt1(Op_hess.sizeout,1);  % Hessian-Shatten: Mixed Norm 1-Schatten (p=1)
 % -- Non-Negativity constraint
@@ -134,7 +141,7 @@ for ii=1:length(lamb_TV)
     A = rho_TV * Op_TV.makeHtH + rho_hess * Op_hess.makeHtH + rhoDTNN * valId * LinOpIdentity(sz);
     solver = @(zn, rho_n, x0) solver_ADMM(A, HH, zn, rho_n);
     Opt=OptiADMM(F0, FF, HH, rho, solver);
-    Opt.OutOp=MyOutputOpti(1,gt,round(maxIt/10),1:(length(FF)-1));
+    Opt.OutOp=MyOutputOpti(1,im,round(maxIt/10),1:(length(FF)-1));
     Opt.OutOp.saveXopt=0;
     Opt.CvOp=TestCvgStepRelative(1e-5);
     Opt.ItUpOut=ItUpOut;              % call OutputOpti update every ItUpOut iterations
@@ -170,6 +177,7 @@ figure;sliceViewer(log(1+abs(fftshift(fftn(xopt)))), 'Colormap', parula); title(
 %% Comparisons
 
 % Widefield image
-SNR_widefield = OptSNR(repmat(mean(gt, 3),[1, 1, nbPatt]), gt);
-disp(['SNR (noiseless widefield image) = ',SNR_widefield,' dB']);
+SNR_widefield = OptSNR(im, repmat(mean(im, 3),[1, 1, nbPatt]));
+disp(['SNR (noiseless widefield image) = ', num2str(SNR_widefield),' dB']);
+
 
