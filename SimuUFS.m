@@ -54,12 +54,16 @@ bckgrnd = im2D(5,5); % Background value
 im2D(1:5, :) = bckgrnd; im2D(end-4:end, :) = bckgrnd;
 im2D(:, 1:5) = bckgrnd; im2D(:, end-4:end) = bckgrnd;
 % Moving image
-max_displacement_x = 5; % Max displacement in total
-displacement_x = round(linspace(0, max_displacement_x, ceil((nbPatt+1)/2)));
-displacement_x = [displacement_x, flip(displacement_x(2-mod(nbPatt, 2):end-1))];
+% max_displacement_x = 5; % Max displacement in total
+% displacement_x = round(linspace(0, max_displacement_x, ceil((nbPatt+1)/2)));
+% displacement_x = [displacement_x, flip(displacement_x(2-mod(nbPatt, 2):end-1))];
+% max_displacement_y = max_displacement_x; %
+% displacement_y = round(linspace(0, max_displacement_y, ceil((nbPatt+1)/2)));
+% displacement_y = [displacement_y, flip(displacement_y(2-mod(nbPatt, 2):end-1))];
+max_displacement_x = 10; % Max displacement in total
+displacement_x = round(linspace(0, max_displacement_x, nbPatt));
 max_displacement_y = max_displacement_x; %
-displacement_y = round(linspace(0, max_displacement_y, ceil((nbPatt+1)/2)));
-displacement_y = [displacement_y, flip(displacement_y(2-mod(nbPatt, 2):end-1))];
+displacement_y = round(linspace(0, max_displacement_y, nbPatt));
 im = ones(sz) * bckgrnd; 
 
 for n = 1 : nbPatt

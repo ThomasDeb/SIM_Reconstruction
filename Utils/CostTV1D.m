@@ -56,11 +56,11 @@ classdef CostTV1D < Cost
     methods
         function this = CostTV1D(sz, index, y)
             % Verify if the mexgl files exist
-            if (exist('TV1D_denoise_mex')~=3)
-                [mpath,~,~] = fileparts(which('TV1D_denoise_mex.c'));
+            if (exist('prox_TV1D_mex')~=3)
+                [mpath,~,~] = fileparts(which('prox_TV1D_mex.c'));
                 pth = cd;
                 cd(mpath);
-                mex -v TV1D_denoise_mex.c -largeArrayDims;
+                mex -v prox_TV1D_mex.c -largeArrayDims;
                 cd(pth);
             end
 
@@ -92,17 +92,11 @@ classdef CostTV1D < Cost
         function y=applyProx_(this,x,alpha)
             % Reimplemented from parent class :class:`Cost`.
             sz = this.sizein;
-            non_index = 1:length(sz); non_index(this.index) = [];
-            y = zeros(sz);
-            S.type = '()';
-            subs = cell(1, length(sz));
-            subs{this.index} = ':'; S.subs = subs;
-            indices = cell(1, length(non_index));
-            for i = 1 : prod(sz(non_index)) % Could be parallelized
-                [indices{:}] = ind2sub(sz(non_index), i);
-                S.subs(non_index) = indices;
-                y = subsasgn(y, S, TV1D_denoise_mex(subsref(x, S), alpha));
-            end
+            dimorder = 1:length(sz);
+            dimorder(1) = this.index; dimorder(this.index) = 1;
+            x_perm = permute(x, dimorder);
+            [y, num_arrays] = prox_TV1D_mex(x_perm(:), alpha, sz(this.index));
+            y = permute(reshape(y, size(x_perm)), dimorder);
         end
     end
 end
