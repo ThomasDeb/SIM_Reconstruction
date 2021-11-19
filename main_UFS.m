@@ -41,8 +41,8 @@ psfname=[basedir,'PSF'];               % File name psf
 pattname=[basedir,'patterns.tif'];     % File name patterns
 gtname=['./SimulatedExample/objectUFS.tif'];           % File name ground truth (if no let empty)
 outFolder=[basedir];                    % Folder to save results
-sav=1;                                  % Boolean if true save the result
-
+sav = true;                                  % Boolean if true save the result
+do_noTV = false;
 % -- Data
 valback=0;       % Background value
 
@@ -64,7 +64,6 @@ periodic_TV = true;
 disp('########## Reconstruction #########');
 
 global isGPU
-addpath Utils
 
 %% Reading data
 % -- PSF
@@ -120,7 +119,7 @@ end
 % -- Regularization
 % TV regularization in time
 if periodic_TV
-    Op_TV = LinOpGrad(sz,3,'circular');      % TV regularizer: Operator Gradient
+    Op_TV = LinOpGrad(sz, 3, 'circular');      % TV regularizer: Operator Gradient
     F_TV = CostL1(Op_TV.sizeout);                % TV regularizer: L1 norm (gradient of size 1)
 else
     Op_TV = LinOpIdentity(sz);
@@ -183,38 +182,40 @@ disp(['SNR = ', num2str(SNR_UFS),' dB']);
 SNR_widefield = OptSNR(im, repmat(mean(im, 3),[1, 1, nbPatt]));
 disp(['SNR (noiseless widefield image) = ', num2str(SNR_widefield),' dB']);
 
-% No TV regularization (frame by frame)
-Op_hess=LinOpHess(szUp,'circular');  % Hessian-Shatten: Hessian Operator
-F_hess=CostMixNormSchatt1(Op_hess.sizeout,1);  % Hessian-Shatten: Mixed Norm 1-Schatten (p=1)
-pos=CostNonNeg(szUp);
-Fn={};Hn={};F0=[];
-xopt_noTV = zeros(sz);
-for i = 1 : size(patt,3)
-    L2=CostL2([],y(:,:,i));             % L2 cost function
-    Fn=(L2*(S*H));
-    Fn.doPrecomputation=true;
-    Hn=LinOpDiag(H.sizein,patt(:,:,i));
-    OpD=LinOpDiag(szUp,sqrt(valId-patt(:,:,i).^2));
-    for ii=1:length(lamb_hess)
-        FF=[{Fn}, {lamb_hess(ii)*F_hess}, {pos}];
-        HH=[{Hn}, {Op_hess}, {OpD}];
-        rho=[rhoDTNN,rho_hess,rhoDTNN];
-        % Solver for ADMM
-        A = rho_hess * Op_hess.makeHtH + rhoDTNN * valId * LinOpIdentity(szUp);
-        solver = @(zn, rho_n, x0) solver_ADMM(A, HH, zn, rho_n);
-        Opt=OptiADMM(F0, FF, HH, rho, solver);
-        Opt.OutOp=MyOutputOpti(1,im(:,:,i),round(maxIt/10),1:(length(FF)-1));
-        Opt.OutOp.saveXopt=0;
-        Opt.CvOp=TestCvgStepRelative(1e-5);
-        Opt.ItUpOut=ItUpOut;              % call OutputOpti update every ItUpOut iterations
-        Opt.maxiter=maxIt;                % max number of iterations
-        Opt.run(zeros(Hn.sizein));     % run the algorithm
-        xopt_noTV(:,:,i) = Opt.xopt;
+if do_noTV
+    % No TV regularization (frame by frame)
+    Op_hess=LinOpHess(szUp,'circular');  % Hessian-Shatten: Hessian Operator
+    F_hess=CostMixNormSchatt1(Op_hess.sizeout,1);  % Hessian-Shatten: Mixed Norm 1-Schatten (p=1)
+    pos=CostNonNeg(szUp);
+    Fn={};Hn={};F0=[];
+    xopt_noTV = zeros(sz);
+    for i = 1 : size(patt,3)
+        L2=CostL2([],y(:,:,i));             % L2 cost function
+        Fn=(L2*(S*H));
+        Fn.doPrecomputation=true;
+        Hn=LinOpDiag(H.sizein,patt(:,:,i));
+        OpD=LinOpDiag(szUp,sqrt(valId-patt(:,:,i).^2));
+        for ii=1:length(lamb_hess)
+            FF=[{Fn}, {lamb_hess(ii)*F_hess}, {pos}];
+            HH=[{Hn}, {Op_hess}, {OpD}];
+            rho=[rhoDTNN,rho_hess,rhoDTNN];
+            % Solver for ADMM
+            A = rho_hess * Op_hess.makeHtH + rhoDTNN * valId * LinOpIdentity(szUp);
+            solver = @(zn, rho_n, x0) solver_ADMM(A, HH, zn, rho_n);
+            Opt=OptiADMM(F0, FF, HH, rho, solver);
+            Opt.OutOp=MyOutputOpti(1,im(:,:,i),round(maxIt/10),1:(length(FF)-1));
+            Opt.OutOp.saveXopt=0;
+            Opt.CvOp=TestCvgStepRelative(1e-5);
+            Opt.ItUpOut=ItUpOut;              % call OutputOpti update every ItUpOut iterations
+            Opt.maxiter=maxIt;                % max number of iterations
+            Opt.run(zeros(Hn.sizein));     % run the algorithm
+            xopt_noTV(:,:,i) = Opt.xopt;
+        end
     end
+
+    figure;sliceViewer(xopt_noTV, 'Colormap', parula); title('Reconstructed image (without TV)'); colorbar; caxis([min(im(:)), max(im(:))]);
+    figure;sliceViewer(log(1+abs(fftshift(fftn(xopt_noTV)))), 'Colormap', parula); title('Reconstructed image (without TV) FFT');
+
+    SNR_noTV = OptSNR(im, xopt_noTV);
+    disp(['SNR (without TV) = ', num2str(SNR_noTV),' dB']);
 end
-
-figure;sliceViewer(xopt_noTV, 'Colormap', parula); title('Reconstructed image (without TV)'); colorbar; caxis([min(im(:)), max(im(:))]);
-figure;sliceViewer(log(1+abs(fftshift(fftn(xopt_noTV)))), 'Colormap', parula); title('Reconstructed image (without TV) FFT');
-
-SNR_noTV = OptSNR(im, xopt_noTV);
-disp(['SNR (without TV) = ', num2str(SNR_noTV),' dB']);
