@@ -115,12 +115,12 @@ mask_lp = mask_lowpass(sz, fc);
 mask_SIM = mask_sim(sz, orr, ns, lamb, res, bet, fc);
 mask_FT = zeros(sz);
 im_lowpass = zeros(sz);
-im_sim = zeros(size(im));
+im_sim = zeros(sz);
 for t = 1 : size(im, 3)
     mask_FT(:,:,t) = fft2(squeeze(im(:,:,t)));
-    im_lowpass(:,:,t) = ifft2(ifftshift(fftshift(fft2(im(:,:,t))) .* mask_lp));
-    im_sim(:,:,t) = ifft2(ifftshift(fftshift(fft2(im(:,:,t))) .* mask_SIM));
+    im_lowpass(:,:,t) = abs(ifft2(ifftshift(fftshift(fft2(im(:,:,t))) .* mask_lp)));
+    im_sim(:,:,t) = abs(ifft2(ifftshift(fftshift(fft2(im(:,:,t))) .* mask_SIM)));
 end
 %figure; sliceViewer(log(1+abs(fftshift(mask_FT))), 'Colormap', parula); colorbar; title('Ground truth FFT')
-figure; sliceViewer(abs(im_lowpass), 'Colormap', parula); colorbar; title('OTF low-passed ground truth')
-figure; sliceViewer(abs(im_sim), 'Colormap', parula); colorbar; title('SIM low-passed ground truth')
+figure; sliceViewer(im_lowpass, 'Colormap', parula); colorbar; caxis([min(im(:)), max(im(:))]); title('OTF low-passed ground truth')
+figure; sliceViewer(im_sim, 'Colormap', parula); colorbar; caxis([min(im(:)), max(im(:))]); title('SIM low-passed ground truth')

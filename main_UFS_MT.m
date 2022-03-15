@@ -46,18 +46,18 @@ do_noTV = false;
 valback=0;       % Background value
 
 % -- Objective Function
-lamb_TV=1e-2;       % Hyperparameter (can be an array to loop)
-lamb_hess=lamb_TV/10;       % Hyperparameter (can be an array to loop)
+lamb_TV=1e-3;       % Hyperparameter (can be an array to loop)
+lamb_hess=lamb_TV*1;       % Hyperparameter (can be an array to loop)
 symPsf=1;        % Boolean true if psf is symmetric
 
 % -- SIM reconstruction
 maxIt = 200;               % Max iterations
 ItUpOut = round(maxIt/10);  % Iterations between to call to OutputOpti
-rhoDTNN = 1e-3;            % rho parameter (ADMM) associated to data term
-rho_TV = lamb_TV*10;             % rho parameter (ADMM) associated to TV term (must be greater or equal than rhoDTNN if iterCG=0)
-rho_hess = lamb_hess*100;             % rho parameter (ADMM) associated to Hessian-Schatten term (must be greater or equal than rhoDTNN if iterCG=0)
+rhoDTNN = 1e-4;            % rho parameter (ADMM) associated to data term
+rho_TV = lamb_TV*0.1;             % rho parameter (ADMM) associated to TV term (must be greater or equal than rhoDTNN if iterCG=0)
+rho_hess = lamb_hess*0.01;             % rho parameter (ADMM) associated to Hessian-Schatten term (must be greater or equal than rhoDTNN if iterCG=0)
 valId = 2;                  % Scaling (>1) of the identity operator for the reformulation in [1] (only for splitting 3)
-periodic_TV = true;
+periodic_TV = false;
 
 %% Reconstruction
 disp('########## Reconstruction #########');
@@ -145,6 +145,7 @@ for ii=1:length(lamb_TV)
     Opt.ItUpOut=ItUpOut;              % call OutputOpti update every ItUpOut iterations
     Opt.maxiter=maxIt;                % max number of iterations
     Opt.run(zeros(Hn{1}.sizein));     % run the algorithm
+    %Opt.run(gt);     % run the algorithm
     if isGPU==1
         xopt=gather(Opt.xopt);
         fftxopt=gather(log(1+abs(fftshift(fftshift(Sfft(xopt,3),1),2))));   % because Sfft uses zeros_
