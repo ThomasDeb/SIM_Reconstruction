@@ -178,7 +178,6 @@ subplot(1,2,2);imagesc(log(1+abs(fftshift(fftn(sum(acq,3)))))); axis image; titl
 %% Show all sampled frequencies and low-passed image
 
 figure; imagesc(log(1+abs(fftshift(fftn(im2D))))); axis image; title('Object FFT');
-viscircles(floor(sz(1:2)/2)+1,fc*sz(1));
 [X,Y]=meshgrid(1:sz(1),1:sz(2));
 mask_lowpass = ((X-(sz(1)+1)/2).^2 + (Y-(sz(2)+1)/2).^2) <= (fc*sz(1))^2;
 mask_sim = zeros(sz(1:2));
@@ -187,12 +186,13 @@ for ii=1:length(orr)
     f_idx = k/pi*res.*sz(1:2);
     center_plus = (sz(1:2)+1)/2-f_idx;
     center_min = (sz(1:2)+1)/2+f_idx;
-    viscircles(center_plus,fc*sz(1));
-    viscircles(center_min,fc*sz(1));
+    viscircles(center_plus,fc*sz(1), 'color', 'b');
+    viscircles(center_min,fc*sz(1), 'color', 'b');
     mask_plus = ((X-center_plus(1)).^2 + (Y-center_plus(2)).^2) <= (fc*sz(1))^2;
     mask_min = ((X-center_min(1)).^2 + (Y-center_min(2)).^2) <= (fc*sz(1))^2;
     mask_sim(mask_plus) = 1; mask_sim(mask_min) = 1;
 end
+viscircles(floor(sz(1:2)/2)+1,fc*sz(1));
 
 im2D_lowpass = ifft2(ifftshift(fftshift(fft2(im2D)) .* mask_lowpass));
 im2D_sim = ifft2(ifftshift(fftshift(fft2(im2D)) .* mask_sim));
