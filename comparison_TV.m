@@ -23,6 +23,7 @@ ph=linspace(0,2*pi,4); % Patterns lateral phases (vector)
 ph=ph(1:end-1);
 a=0.9;                 % Amplitude coefficient
 bet=asin(Na/nl);       % Angle between side beams and the optic axis (e.g. bet asin(Na/nl))
+num_cycles = 3;
 
 % -- Acquisition
 photBud= 500; % 500;    % Photon Budget

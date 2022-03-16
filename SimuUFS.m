@@ -48,7 +48,7 @@ im2D=double(read(Tiff(gtpath, 'r')));
 fprintf(' done \n');
 im2D = imresize(im2D, gtsize);
 im2D = (im2D - min(im2D(:)))/ (max(im2D(:)) - min(im2D(:)));
-nbPatt = length(orr)*length(ph);
+nbPatt = length(orr)*length(ph)*num_cycles;
 sz = [size(im2D), nbPatt];
 bckgrnd = im2D(5,5); % Background value
 im2D(1:5, :) = bckgrnd; im2D(end-4:end, :) = bckgrnd;
@@ -60,7 +60,7 @@ im2D(:, 1:5) = bckgrnd; im2D(:, end-4:end) = bckgrnd;
 % max_displacement_y = max_displacement_x; %
 % displacement_y = round(linspace(0, max_displacement_y, ceil((nbPatt+1)/2)));
 % displacement_y = [displacement_y, flip(displacement_y(2-mod(nbPatt, 2):end-1))];
-max_displacement_x = 9; % Max displacement in total
+max_displacement_x = nbPatt; % Max displacement in total
 displacement_x = round(linspace(0, max_displacement_x, nbPatt));
 max_displacement_y = max_displacement_x; %
 displacement_y = round(linspace(0, max_displacement_y, nbPatt));
@@ -99,7 +99,7 @@ fprintf(' done \n');
 
 %% Patterns Generation
 fprintf('Patterns Generation ......');
-patt=zeros(sz);
+patt=zeros([sz(1:2), length(orr)*length(ph)]);
 [X,Y]=meshgrid(0:sz(2)-1,0:sz(1)-1);X=X*res;Y=Y*res;
 i=1;
 for ii=1:length(orr)
@@ -109,6 +109,7 @@ for ii=1:length(orr)
         i=i+1;
     end
 end
+patt = repmat(patt, [1, 1, num_cycles]);
 nbPatt=size(patt,3); % Normalization such that the mean of each pattern is 1/#Patterns
 for ii=1:nbPatt
     tmp=patt(:,:,ii);

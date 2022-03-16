@@ -23,6 +23,7 @@ ph=linspace(0,2*pi,4); % Patterns lateral phases (vector)
 ph=ph(1:end-1);
 a=0.9;                 % Amplitude coefficient
 bet=asin(Na/nl);       % Angle between side beams and the optic axis (e.g. bet asin(Na/nl))
+num_cycles = 3;
 
 % -- Acquisition
 photBud= 500; % 500;    % Photon Budget
@@ -47,16 +48,16 @@ do_noTV = false;
 valback=0;       % Background value
 
 % -- Objective Function
-lamb_TV=10.^linspace(-2, -1, 5);       % Hyperparameter (can be an array to loop)
-lamb_hess=10.^linspace(-2.5, -1.5, 5);
+lamb_TV=0.05;       % Hyperparameter (can be an array to loop)
+lamb_hess=0.01;
 symPsf=1;        % Boolean true if psf is symmetric
 
 % -- SIM reconstruction
 maxIt = 100;               % Max iterations
 ItUpOut = round(maxIt/10);  % Iterations between to call to OutputOpti
 rhoDTNN = 1e-3;            % rho parameter (ADMM) associated to data term
-rho_TV = lamb_TV/1000;             % rho parameter (ADMM) associated to TV term (must be greater or equal than rhoDTNN if iterCG=0)
-rho_hess = lamb_hess/100;             % rho parameter (ADMM) associated to Hessian-Schatten term (must be greater or equal than rhoDTNN if iterCG=0)
+rho_TV = lamb_TV/1000*3;             % rho parameter (ADMM) associated to TV term (must be greater or equal than rhoDTNN if iterCG=0)
+rho_hess = lamb_hess/100*3;             % rho parameter (ADMM) associated to Hessian-Schatten term (must be greater or equal than rhoDTNN if iterCG=0)
 valId = 2;                  % Scaling (>1) of the identity operator for the reformulation in [1] (only for splitting 3)
 periodic_TV = false;
 
