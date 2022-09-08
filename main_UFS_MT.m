@@ -41,7 +41,7 @@ pattname=[basedir,'patterns.tif'];     % File name patterns
 gtname=['./SimulatedExample/objectUFS_MT.tif'];           % File name ground truth (if no let empty)
 outFolder=[basedir];                    % Folder to save results
 sav = true;                                  % Boolean if true save the result
-do_noTV = false;
+do_noTV = true;
 % -- Data
 valback=0;       % Background value
 

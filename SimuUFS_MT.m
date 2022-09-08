@@ -1,6 +1,6 @@
-N = 256; num_t = 9; sz = [N, N, num_t];
+N = 512; num_t = 9; sz = [N, N, num_t];
 % Microtubule parameters
-rerun = 0;
+rerun = 1;
 % Spatial parameters
 num_pts = 5; sigma = 10; radius = 1; num_mt = 10;
 % Temporal parameters

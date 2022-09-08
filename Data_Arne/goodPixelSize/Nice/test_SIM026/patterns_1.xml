@@ -1,0 +1,28 @@
+<fairsim>
+<sim-param>
+<apodization-bend type="decimal"> 9,00000e-01 </apodization-bend>
+<nr-angles type="int"> 3 </nr-angles>
+<microns-per-pxl type="decimal"> 6,40000e-02 </microns-per-pxl>
+<wiener-parameter type="decimal"> 5,00000e-02 </wiener-parameter>
+<nr-bands type="int"> 2 </nr-bands>
+<img-size-pxl type="int"> 512 </img-size-pxl>
+<apodization-cutoff type="decimal"> 2,00000e+00 </apodization-cutoff>
+<nr-phases type="int"> 3 </nr-phases>
+<img-seq type="string">PAZ</img-seq>
+<dir-2>
+<shift type="decimal"> 3,74556e+01 -1,19500e+02 </shift>
+<phase-offset type="decimal"> 1,76624e+00 </phase-offset>
+<modulations type="decimal"> 1,00000e+00 3,25285e-01 </modulations>
+</dir-2>
+<dir-1>
+<shift type="decimal"> 8,48111e+01 9,21000e+01 </shift>
+<phase-offset type="decimal"> -1,61682e+00 </phase-offset>
+<modulations type="decimal"> 1,00000e+00 3,63186e-01 </modulations>
+</dir-1>
+<dir-0>
+<shift type="decimal"> 1,22122e+02 -2,73889e+01 </shift>
+<phase-offset type="decimal"> 2,30025e+00 </phase-offset>
+<modulations type="decimal"> 1,00000e+00 3,42733e-01 </modulations>
+</dir-0>
+</sim-param>
+</fairsim>
