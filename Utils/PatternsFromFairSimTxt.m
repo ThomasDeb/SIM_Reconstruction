@@ -28,7 +28,7 @@ end
 
 %% Take mean over time frame of all parameters
 
-phOff = mean(phOff, 2); % Big variability => think about it
+phOff = mean(phOff, 2); % Big variability
 shift = mean(shift, 3);
 orr = mean(orr, 2);
 for ii=1:nbOrr

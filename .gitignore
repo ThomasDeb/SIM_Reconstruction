@@ -1,0 +1,6 @@
+*.DS_Store
+*.asv
+*.mexmaci64
+Data_Arne/*
+RealData/*
+SimulatedExample/*

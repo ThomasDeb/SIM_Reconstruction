@@ -20,7 +20,7 @@ ns=1.333;                % Refractive index of the sample medium (water)
 orr=[0 pi/3 2*pi/3];   % Patterns orientations (vector)
 ph=linspace(0,2*pi,4); % Patterns lateral phases (vector)
 ph=ph(1:end-1);
-a=0.9;                 % Amplitude coefficient
+a=1;                 % Amplitude coefficient
 bet=asin(Na/nl);       % Angle between side beams and the optic axis (e.g. bet asin(Na/nl))
 
 % -- Acquisition

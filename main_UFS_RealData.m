@@ -58,7 +58,7 @@ end
 % -- Data
 nbTime = 2;
 y = y(:,:,1:nbPatt*nbTime)-valback; %maxy=max(y(:));y=y/maxy;              % Load and normalize data
-%y = imresize3(y,[512 512 size(y, 3)]);
+y = imresize3(y,[512 512 size(y, 3)]);
 figure;sliceViewer(y, 'Colormap', parula); title('Data'); colorbar; caxis([min(y(:)), max(y(:))]);
 % -- Ground Truth
 if ~isempty(gtname)                                                        % Load ground truth if available
@@ -71,7 +71,7 @@ szUp=size(psf);
 sz=[szUp, size(y, 3)]; %input size
 
 % -- Objective Function
-lamb_TV=1e-2 * mean(y(:));       % Hyperparameter (can be an array to loop)
+lamb_TV=3*1e-3 * mean(y(:));       % Hyperparameter (can be an array to loop)
 lamb_hess=lamb_TV*1;       % Hyperparameter (can be an array to loop)
 symPsf=1;        % Boolean true if psf is symmetric
 
