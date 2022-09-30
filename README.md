@@ -25,4 +25,13 @@ The repository is organized as follows.
 - The script **SimuUFS_MT.m** allows to generate simulated time-varying ground-truth microtubule-like structures and to generate simulated acquisition parameters such as OTF and illumination patterns (used in SimuUFS_MT.m).
 - The script **main_UFS_RealData.m** contains the main code for our method on real data.
 - The script **RealDataUFS.m** to generate estimated acquisition parameters such as OTF and illumination patterns (used in main_UFS_RealData.m).
-- Folder **Utils** contains auxilliary functions.
+- The folder **Utils** contains auxiliary functions.
+- The folder **UFS_forward_Python** contains Python code implementing the time-varying SIM forward model. The function that generate the illumination patterns takes parameters estimated by FairSIM as input.
+
+## Additional comments / things to look into
+
+- The script **Utils/pattern_parameters_FairSIM.java** allows to estimate the parameters of the illumination patterns using FairSIM (ImageJ plugin) and write them in a .txt file, which is then parsed by **PatternsFromFairSimTxt.m** within the **RealDataUFS.m** script. Note that playing with the OTF dampening parameter **otfCorr** can significantly affect the parameter estimation. Currently, the estimated parameters are simply averaged over all the 9-frame cycles. With the BIOP data I used, the variability in the estimated parameters is quite low among cycles, but the quality of the estimation is still considered as "weak" by FairSIM.
+
+- FairSIM does not estimate the amplitude parameter **a** of the illumination patterns (1 + a * cos(...)). I tried using Alejandro's FlexSIM method to estimate the pattern parameters (including the amplitude), I didn't have time to investigate much but when I ran it as is there is a huge variability in the estimation across 9-frame cycles, so it would require more work. Note that it estimated the amplitude parameter around a=0.01, which may explain why the FairSIM estimation is weak. The is consistent with the fact that the patterns are very hard to see "manually" (even in Fourier domain), so the acquisition may have been a bit crappy (Arne had kind of acknowledged that, but I first tried with what we had).
+
+- Concerning the OTF, I generate an estimate based on acquisition parameters using Manu's code, I have no clue how accurate it is. FairSIM and Alejandro both use a different estimation of the OTF, with a dampening parameter but without the refractive indices (I didn't check how they compare).
