@@ -2,11 +2,15 @@
 
 ## Description
 
-Structured illumination microscopy (SIM) reconstruction algorithm with computational sectioning.  More details can be found in the following paper:
+Time-varying 2D structured illumination microscopy (SIM) reconstruction algorithm based on the inner-loop-free ADMM algorithm from [1]. As in [1], we use Hessian-Schatten regularization in the spatial dimensions. We use an additional total-variation (TV) regularizer for the temporal dimension, either with periodic boundary conditions which allows to adapt the inner-loop-free method of [1], or with zero boundary conditions using the direct proximity operator of 1D TV.
 
 [1] <a href="https://ieeexplore.ieee.org/document/8579117" target="_blank">Computational Super-Sectioning for Single-Slice Structured Illumination Microscopy.</a>, <br />
 IEEE Transactions on Computational Imaging, vol. 5 no. 2, pp. 240-250, 2019.  <br />
 E. Soubies, and M. Unser.
+
+[2] <a href="https://ieeexplore.ieee.org/document/6579659" target="_blank">A Direct Algorithm for 1-D Total Variation Denoising</a>, <br />
+IEEE Signal Processing Letters, vol. 20 no. 11, pp. 1054-1057, 2013.  <br />
+L. Condat.
 
 ## Requirements
 
@@ -17,12 +21,8 @@ https://biomedical-imaging-group.github.io/GlobalBioIm/
 
 The repository is organized as follows.
 
-- The script **SimScript2D.m** contains the main code of the method proposed in [1].
-- The script **SimuSIM2D.m** allows to generate 2D-SIM data (used in ScriptSimuExample.m).
-- The script **ScriptFig3.m** reproduces the Figure 3 of [1].
-- The script **ScriptSimuExample.m** is an example on a small simulated example without out-of-focus signal.
-- The script **ScriptRealExample.m** is an example on the real SIM data located within the folder Data/.
-- The script **ScriptPatternFromFairSIM.m** provides an example on how to generate images of the patterns given the xml file that can be obtained with <a href="https://www.fairsim.org/" target="_blank"> FairSIM </a>
-- Folder **Data** contains raw-SIM data with corresponding (estimated) PSF and patterns generated as explained in ScriptPatternFromFairSIM.m
-- Folder **Utils** contains auxilliary functions
-
+- The script **SimuUFS_MT.m** contains the main code for our method on simulated data.
+- The script **SimuUFS_MT.m** allows to generate simulated time-varying ground-truth microtubule-like structures and to generate simulated acquisition parameters such as OTF and illumination patterns (used in SimuUFS_MT.m).
+- The script **main_UFS_RealData.m** contains the main code for our method on real data.
+- The script **RealDataUFS.m** to generate estimated acquisition parameters such as OTF and illumination patterns (used in main_UFS_RealData.m).
+- Folder **Utils** contains auxilliary functions.
